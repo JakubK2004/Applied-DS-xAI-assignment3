@@ -10,20 +10,10 @@ Answers:
   Q6. Top-5 most occurring brand names in attributes
 """
 
-import pandas as pd
 import matplotlib.pyplot as plt
+from preprocessing import prepare_data
 
-DATA_DIR = "../data"
-
-# ---------------------------------------------------------------------------
-# Load data
-# ---------------------------------------------------------------------------
-
-train = pd.read_csv(f"{DATA_DIR}/train.csv", encoding="ISO-8859-1")
-descriptions = pd.read_csv(f"{DATA_DIR}/product_descriptions.csv")
-attributes = pd.read_csv(f"{DATA_DIR}/attributes.csv")
-
-train = train.merge(descriptions, on="product_uid", how="left")
+train, test, attributes, attr_lookup = prepare_data()
 
 # ---------------------------------------------------------------------------
 # Q1: Total product-query pairs
