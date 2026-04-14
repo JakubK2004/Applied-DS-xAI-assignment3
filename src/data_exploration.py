@@ -11,9 +11,9 @@ Answers:
 """
 
 import matplotlib.pyplot as plt
-from preprocessing import prepare_data
+from preprocessing import prepare_data_cached
 
-train, test, attributes, attr_lookup = prepare_data()
+train, test, attributes, attr_lookup = prepare_data_cached()
 
 # ---------------------------------------------------------------------------
 # Q1: Total product-query pairs
@@ -51,7 +51,7 @@ plt.title("Distribution of relevance scores")
 plt.xlabel("Relevance")
 plt.ylabel("Count")
 plt.tight_layout()
-plt.savefig("../results/figures/relevance_distribution.png")
+#plt.savefig("../results/figures/relevance_distribution.png")
 plt.show()
 
 # ---------------------------------------------------------------------------

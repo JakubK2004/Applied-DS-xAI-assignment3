@@ -4,6 +4,8 @@ Handles data loading, stemming, stopword removal, and domain-specific
 normalization of numbers and units (e.g. "8 ft.", "mdf 3/4").
 """
 
+import hashlib
+import pickle
 import re
 import pandas as pd
 import nltk
@@ -65,6 +67,37 @@ def prepare_data(stem: bool = True):
     )
 
     return train, test, attributes, attr_lookup
+
+
+CACHE_DIR = DATA_DIR / ".cache"
+
+def prepare_data_cached(stem: bool = True):
+    """
+    Wrapper around prepare_data() that persists results to disk.
+    The cache is invalidated automatically when any source CSV is modified.
+    """
+    source_files = [
+        DATA_DIR / "train.csv",
+        DATA_DIR / "test.csv",
+        DATA_DIR / "product_descriptions.csv",
+        DATA_DIR / "attributes.csv",
+    ]
+    mtimes = "".join(f"{p.stat().st_mtime}" for p in source_files)
+    cache_key = hashlib.md5(f"{mtimes}stem={stem}".encode()).hexdigest()
+    cache_file = CACHE_DIR / f"{cache_key}.pkl"
+
+    if cache_file.exists():
+        print("[cache] Loading preprocessed data from cache...")
+        with open(cache_file, "rb") as f:
+            return pickle.load(f)
+
+    print("[cache] Cache miss — running preprocessing (will be cached for next run)...")
+    result = prepare_data(stem=stem)
+    CACHE_DIR.mkdir(exist_ok=True)
+    with open(cache_file, "wb") as f:
+        pickle.dump(result, f)
+    return result
+
 
 # ---------------------------------------------------------------------------
 # Text preprocessing
