@@ -1,6 +1,7 @@
 # Data files (large — download from Kaggle manually)
 data/*.csv
 data/*.zip
+data/.cache/
 
 # Python
 __pycache__/
