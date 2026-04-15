@@ -22,7 +22,7 @@ sys.path.insert(0, ".")
 from preprocessing import preprocess
 from features import build_feature_vector, FEATURE_NAMES_TFIDF
 
-DATA_DIR = "../data"
+DATA_DIR = "data"
 RANDOM_STATE = 42
 
 # ---------------------------------------------------------------------------

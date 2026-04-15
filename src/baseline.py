@@ -15,7 +15,7 @@ from sklearn.metrics import mean_squared_error
 sys.path.insert(0, ".")
 from preprocessing import preprocess
 
-DATA_DIR = "../data"
+DATA_DIR = "data"
 RANDOM_STATE = 42  # fixed — keep the same split in every run
 
 # ---------------------------------------------------------------------------
