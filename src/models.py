@@ -17,7 +17,7 @@ from sklearn.ensemble import RandomForestRegressor, BaggingRegressor, GradientBo
 from sklearn.linear_model import Ridge
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import root_mean_squared_error
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -75,7 +75,7 @@ print(f"      Done  ({time.time()-t0:.1f}s)")
 
 print("[3/6] Fitting TF-IDF vectorizer...")
 corpus = pd.concat([train["product_title"], train["product_description"]]).astype(str)
-tfidf = TfidfVectorizer(max_features=5000)
+tfidf = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))
 tfidf.fit(corpus)
 print(f"      Vocabulary size: {len(tfidf.vocabulary_):,}")
 
@@ -121,7 +121,7 @@ for name, model in MODELS.items():
     t0 = time.time()
     model.fit(X_train, y_train)
     elapsed = time.time() - t0
-    rmse = mean_squared_error(y_test, model.predict(X_test), squared=False)
+    rmse = root_mean_squared_error(y_test, model.predict(X_test))
     results[name] = {"RMSE": rmse, "Train time (s)": round(elapsed, 2)}
     print(f"      {name:30s}  RMSE={rmse:.4f}  time={elapsed:.1f}s")
 
@@ -151,6 +151,6 @@ search = RandomizedSearchCV(
 )
 search.fit(X_train, y_train)
 
-best_rmse = mean_squared_error(y_test, search.best_estimator_.predict(X_test), squared=False)
+best_rmse = root_mean_squared_error(y_test, search.best_estimator_.predict(X_test))
 print(f"\nBest params: {search.best_params_}")
 print(f"Tuned RMSE:  {best_rmse:.4f}")
