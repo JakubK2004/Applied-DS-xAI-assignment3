@@ -11,6 +11,7 @@ import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from pathlib import Path
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import train_test_split
 
@@ -56,5 +57,5 @@ plt.barh(sorted_names[:top_n][::-1], sorted_values[:top_n][::-1])
 plt.xlabel("Importance")
 plt.title(f"Top-{top_n} feature importances")
 plt.tight_layout()
-plt.savefig("../results/figures/feature_importances.png")
+plt.savefig(Path(__file__).parent.parent / "results" / "figures" / "feature_importances.png")
 plt.show()
