@@ -17,7 +17,7 @@ from pathlib import Path
 from sklearn.ensemble import RandomForestRegressor, BaggingRegressor, GradientBoostingRegressor
 from sklearn.linear_model import Ridge
 from sklearn.neighbors import KNeighborsRegressor
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, GridSearchCV
 from sklearn.metrics import root_mean_squared_error
 from sklearn.feature_extraction.text import TfidfVectorizer
 
@@ -134,17 +134,24 @@ for name, model in MODELS.items():
 best_name = min(results, key=lambda k: results[k]["RMSE"])
 print(f"\n[6/6] Hyperparameter tuning — best so far: {best_name}")
 
-param_dist = {
-    "n_estimators": [50, 100, 200],
-    "max_depth": [3, 4, 5, 6],
-    "learning_rate": [0.05, 0.1, 0.2],
-    "subsample": [0.7, 0.8, 1.0],
+# ---------------------------------------------------------------------------
+# Stage 1 — Broad random search across a wide grid
+# ---------------------------------------------------------------------------
+
+print("\n  Stage 1: RandomizedSearchCV (wide grid, 40 iterations)...")
+broad_param_dist = {
+    "n_estimators":   [50, 100, 200, 300, 500],
+    "max_depth":      [2, 3, 4, 5, 6, 7, 8],
+    "learning_rate":  [0.01, 0.05, 0.1, 0.15, 0.2, 0.3],
+    "subsample":      [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+    "min_samples_split": [2, 5, 10, 20],
+    "max_features":   ["sqrt", "log2", 0.5, 0.8, 1.0],
 }
 
 search = RandomizedSearchCV(
     GradientBoostingRegressor(random_state=RANDOM_STATE),
-    param_distributions=param_dist,
-    n_iter=20,
+    param_distributions=broad_param_dist,
+    n_iter=40,
     cv=5,
     scoring="neg_root_mean_squared_error",
     random_state=RANDOM_STATE,
@@ -152,7 +159,54 @@ search = RandomizedSearchCV(
     verbose=1,
 )
 search.fit(X_train, y_train)
+p = search.best_params_
+rmse_stage1 = root_mean_squared_error(y_test, search.best_estimator_.predict(X_test))
+print(f"\n  Stage 1 best params: {p}")
+print(f"  Stage 1 RMSE:        {rmse_stage1:.4f}")
 
-best_rmse = root_mean_squared_error(y_test, search.best_estimator_.predict(X_test))
-print(f"\nBest params: {search.best_params_}")
-print(f"Tuned RMSE:  {best_rmse:.4f}")
+# ---------------------------------------------------------------------------
+# Stage 2 — Narrow grid search around the best params from Stage 1
+# ---------------------------------------------------------------------------
+
+print("\n  Stage 2: GridSearchCV (narrow grid around Stage 1 best)...")
+
+def neighbours(val, candidates):
+    """Return candidates within one step of val."""
+    idx = candidates.index(val) if val in candidates else 0
+    return candidates[max(0, idx-1): idx+2]
+
+n_est_grid   = sorted(set([max(50, p["n_estimators"] - 50), p["n_estimators"], p["n_estimators"] + 50]))
+depth_grid   = sorted(set([max(2, p["max_depth"] - 1), p["max_depth"], p["max_depth"] + 1]))
+lr_candidates = [0.01, 0.05, 0.1, 0.15, 0.2, 0.3]
+lr_grid      = neighbours(p["learning_rate"], lr_candidates)
+sub_candidates = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+sub_grid     = neighbours(p["subsample"], sub_candidates)
+
+narrow_grid = {
+    "n_estimators":  n_est_grid,
+    "max_depth":     depth_grid,
+    "learning_rate": lr_grid,
+    "subsample":     sub_grid,
+}
+print(f"  Narrow grid: {narrow_grid}")
+
+fine_search = GridSearchCV(
+    GradientBoostingRegressor(
+        min_samples_split=p["min_samples_split"],
+        max_features=p["max_features"],
+        random_state=RANDOM_STATE,
+    ),
+    param_grid=narrow_grid,
+    cv=5,
+    scoring="neg_root_mean_squared_error",
+    n_jobs=-1,
+    verbose=1,
+)
+fine_search.fit(X_train, y_train)
+rmse_stage2 = root_mean_squared_error(y_test, fine_search.best_estimator_.predict(X_test))
+print(f"\n  Stage 2 best params: {fine_search.best_params_}")
+print(f"  Stage 2 RMSE:        {rmse_stage2:.4f}")
+print(f"\n  Improvement over untuned: {min(results.values(), key=lambda r: r['RMSE'])['RMSE'] - rmse_stage2:+.4f}")
+
+# expose best estimator for feature_analysis.py
+search = fine_search
