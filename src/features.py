@@ -140,6 +140,7 @@ def build_feature_vector(
     brand_lookup: dict | None = None,
     num_attrs_lookup: dict | None = None,
     nlp=None,
+    spacy_sims: tuple[float, float] | None = None,
     stem: bool = True,
 ) -> list[float]:
     """
@@ -152,7 +153,8 @@ def build_feature_vector(
     tfidf_vec      : fitted TfidfVectorizer (optional)
     brand_lookup   : product_uid -> brand name string (optional)
     num_attrs_lookup: product_uid -> attribute count (optional)
-    nlp            : spaCy language model (optional)
+    nlp            : spaCy language model (optional; ignored if spacy_sims provided)
+    spacy_sims     : pre-computed (title_sim, desc_sim) tuple (faster than passing nlp)
     stem           : whether to apply stemming during preprocessing
     """
     query = str(row["search_term"])
@@ -193,7 +195,10 @@ def build_feature_vector(
         features.append(tfidf_similarity(query, title, tfidf_vec))
         features.append(tfidf_similarity(query, desc, tfidf_vec))
 
-    if nlp is not None:
+    if spacy_sims is not None:
+        features.append(spacy_sims[0])
+        features.append(spacy_sims[1])
+    elif nlp is not None:
         features.append(spacy_similarity(query, title, nlp))
         features.append(spacy_similarity(query, desc, nlp))
 

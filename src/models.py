@@ -9,6 +9,8 @@ Tasks:
 
 import sys
 import time
+import hashlib
+import pickle
 import numpy as np
 import pandas as pd
 import spacy
@@ -25,7 +27,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from preprocessing import preprocess
 from features import build_feature_vector, FEATURE_NAMES_FULL  # noqa
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR  = Path(__file__).parent.parent / "data"
+CACHE_DIR = DATA_DIR / ".cache"
 RANDOM_STATE = 42
 
 # ---------------------------------------------------------------------------
@@ -62,39 +65,72 @@ num_attrs_lookup = (
 )
 
 # ---------------------------------------------------------------------------
-# Load spaCy
+# Feature matrix — build or load from cache
 # ---------------------------------------------------------------------------
 
-print("[2/6] Loading spaCy model (en_core_web_md)...")
-t0 = time.time()
-nlp = spacy.load("en_core_web_md")
-print(f"      Done  ({time.time()-t0:.1f}s)")
+source_files = [DATA_DIR / "train.csv", DATA_DIR / "product_descriptions.csv", DATA_DIR / "attributes.csv"]
+mtimes = "".join(f"{p.stat().st_mtime}" for p in source_files)
+cache_key  = hashlib.md5(f"{mtimes}v1".encode()).hexdigest()
+cache_file = CACHE_DIR / f"features_{cache_key}.pkl"
 
-# ---------------------------------------------------------------------------
-# Build extended feature matrix
-# ---------------------------------------------------------------------------
+if cache_file.exists():
+    print("[2/6] Loading feature matrix from cache...")
+    t0 = time.time()
+    with open(cache_file, "rb") as f:
+        X, y = pickle.load(f)
+    print(f"      Feature matrix: {X.shape}  ({time.time()-t0:.1f}s)")
+else:
+    print("[2/6] Loading spaCy model (en_core_web_md)...")
+    t0 = time.time()
+    nlp = spacy.load("en_core_web_md")
+    print(f"      Done  ({time.time()-t0:.1f}s)")
 
-print("[3/6] Fitting TF-IDF vectorizer...")
-corpus = pd.concat([train["product_title"], train["product_description"]]).astype(str)
-tfidf = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))
-tfidf.fit(corpus)
-print(f"      Vocabulary size: {len(tfidf.vocabulary_):,}")
+    print("[3/6] Fitting TF-IDF vectorizer...")
+    corpus = pd.concat([train["product_title"], train["product_description"]]).astype(str)
+    tfidf = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))
+    tfidf.fit(corpus)
+    print(f"      Vocabulary size: {len(tfidf.vocabulary_):,}")
 
-print("[4/6] Building feature matrix (slow — spaCy runs on every row)...")
-t0 = time.time()
-X = np.array([
-    build_feature_vector(
-        row, attr_lookup,
-        tfidf_vec=tfidf,
-        brand_lookup=brand_lookup,
-        num_attrs_lookup=num_attrs_lookup,
-        nlp=nlp,
-        stem=True,
-    )
-    for _, row in train.iterrows()
-])
-y = train["relevance"].values
-print(f"      Feature matrix: {X.shape}  ({time.time()-t0:.1f}s)")
+    print("[4/6] Pre-computing spaCy similarities in batch...")
+    t0 = time.time()
+    queries = train["search_term"].fillna("").tolist()
+    titles  = train["product_title"].fillna("").tolist()
+    descs   = train["product_description"].fillna("").tolist()
+
+    query_docs = list(nlp.pipe(queries, batch_size=512))
+    title_docs = list(nlp.pipe(titles,  batch_size=512))
+    desc_docs  = list(nlp.pipe(descs,   batch_size=512))
+
+    spacy_sims = [
+        (
+            float(q.similarity(t)) if q.has_vector and t.has_vector else 0.0,
+            float(q.similarity(d)) if q.has_vector and d.has_vector else 0.0,
+        )
+        for q, t, d in zip(query_docs, title_docs, desc_docs)
+    ]
+    print(f"      spaCy done  ({time.time()-t0:.1f}s)")
+
+    print("[5/6] Building feature matrix...")
+    t0 = time.time()
+    X = np.array([
+        build_feature_vector(
+            row, attr_lookup,
+            tfidf_vec=tfidf,
+            brand_lookup=brand_lookup,
+            num_attrs_lookup=num_attrs_lookup,
+            spacy_sims=sims,
+            stem=True,
+        )
+        for (_, row), sims in zip(train.iterrows(), spacy_sims)
+    ])
+    y = train["relevance"].values
+    print(f"      Feature matrix: {X.shape}  ({time.time()-t0:.1f}s)")
+
+    print("      Saving to cache...")
+    CACHE_DIR.mkdir(exist_ok=True)
+    with open(cache_file, "wb") as f:
+        pickle.dump((X, y), f)
+    print("      Cached.")
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=RANDOM_STATE
@@ -105,7 +141,7 @@ print(f"      Train: {len(X_train):,} rows  |  Test: {len(X_test):,} rows")
 # Task 1 — Compare four regression models
 # ---------------------------------------------------------------------------
 
-print("\n[5/6] Training and evaluating models...")
+print("\n[6/6] Training, evaluating, and tuning models...")
 MODELS = {
     "BaggingRF (baseline)": BaggingRegressor(
         estimator=RandomForestRegressor(n_estimators=15, max_depth=6, random_state=0, n_jobs=-1),
@@ -132,7 +168,7 @@ for name, model in MODELS.items():
 # ---------------------------------------------------------------------------
 
 best_name = min(results, key=lambda k: results[k]["RMSE"])
-print(f"\n[6/6] Hyperparameter tuning — best so far: {best_name}")
+print(f"\n  Hyperparameter tuning — best so far: {best_name}")
 
 # ---------------------------------------------------------------------------
 # Stage 1 — Broad random search across a wide grid
