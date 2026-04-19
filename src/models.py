@@ -12,6 +12,7 @@ import time
 import numpy as np
 import pandas as pd
 import spacy
+from xgboost import XGBRegressor
 from pathlib import Path
 from sklearn.ensemble import RandomForestRegressor, BaggingRegressor, GradientBoostingRegressor
 from sklearn.linear_model import Ridge
@@ -111,6 +112,7 @@ MODELS = {
         n_estimators=40, max_samples=0.1, random_state=42, n_jobs=-1,
     ),
     "GradientBoosting": GradientBoostingRegressor(n_estimators=100, random_state=RANDOM_STATE),
+    "XGBoost": XGBRegressor(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=RANDOM_STATE, n_jobs=-1, verbosity=0),
     "Ridge": Ridge(),
     "KNeighbors": KNeighborsRegressor(n_neighbors=10, n_jobs=-1),
 }
