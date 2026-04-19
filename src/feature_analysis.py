@@ -12,22 +12,15 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.model_selection import train_test_split
 
-sys.path.insert(0, ".")
-from features import FEATURE_NAMES_TFIDF
+sys.path.insert(0, str(Path(__file__).parent))
+from features import FEATURE_NAMES_FULL
 
-DATA_DIR = "../data"
-RANDOM_STATE = 42
+FIGURES_DIR = Path(__file__).parent.parent / "results" / "figures"
 
-# ---------------------------------------------------------------------------
-# Assumes X, y, and best_estimator are available from models.py
-# Run models.py first, or re-build X/y here and fit a single model.
-# ---------------------------------------------------------------------------
-
-# Re-build features (import from models.py in practice)
-from models import X_train, X_test, y_train, y_test, search  # noqa
+print("[1/3] Loading model and data from models.py...")
+from models import X_train, search  # noqa
+print("      Done.")
 
 best_model = search.best_estimator_
 
@@ -35,21 +28,17 @@ best_model = search.best_estimator_
 # Extract feature importances
 # ---------------------------------------------------------------------------
 
+print("[2/3] Extracting feature importances...")
 importances = best_model.feature_importances_
-feature_names = FEATURE_NAMES_TFIDF
+feature_names = FEATURE_NAMES_FULL
 
-# Sort descending
 sorted_idx = np.argsort(importances)[::-1]
 sorted_names = [feature_names[i] for i in sorted_idx]
 sorted_values = importances[sorted_idx]
 
-print("Feature importances (ranked):")
+print("\nFeature importances (ranked):")
 for name, val in zip(sorted_names, sorted_values):
     print(f"  {name:25s} {val:.4f}")
-
-# ---------------------------------------------------------------------------
-# Plot top-5 features
-# ---------------------------------------------------------------------------
 
 top_n = 5
 plt.figure(figsize=(7, 4))
@@ -57,5 +46,27 @@ plt.barh(sorted_names[:top_n][::-1], sorted_values[:top_n][::-1])
 plt.xlabel("Importance")
 plt.title(f"Top-{top_n} feature importances")
 plt.tight_layout()
-plt.savefig(Path(__file__).parent.parent / "results" / "figures" / "feature_importances.png")
+plt.savefig(FIGURES_DIR / "feature_importances.png")
+print(f"\n      Saved feature importances plot.")
 plt.show()
+
+# ---------------------------------------------------------------------------
+# Feature correlation matrix
+# ---------------------------------------------------------------------------
+
+print("[3/3] Computing feature correlation matrix...")
+df_features = pd.DataFrame(X_train, columns=FEATURE_NAMES_FULL)
+corr = df_features.corr()
+
+plt.figure(figsize=(10, 8))
+plt.imshow(corr, cmap="coolwarm", vmin=-1, vmax=1)
+plt.colorbar()
+plt.xticks(range(len(FEATURE_NAMES_FULL)), FEATURE_NAMES_FULL, rotation=90)
+plt.yticks(range(len(FEATURE_NAMES_FULL)), FEATURE_NAMES_FULL)
+plt.title("Feature correlation matrix")
+plt.tight_layout()
+plt.savefig(FIGURES_DIR / "feature_correlations.png")
+print("      Saved correlation matrix plot.")
+plt.show()
+
+print("\nDone.")

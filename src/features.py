@@ -23,6 +23,15 @@ def count_common_words(query_tokens: list[str], target_tokens: list[str]) -> int
 
 
 # ---------------------------------------------------------------------------
+# Ratio features
+# ---------------------------------------------------------------------------
+
+def overlap_ratio(overlap: int, length: int) -> float:
+    """Overlap count normalised by a length (avoids division by zero)."""
+    return overlap / length if length > 0 else 0.0
+
+
+# ---------------------------------------------------------------------------
 # TF-IDF cosine similarity
 # ---------------------------------------------------------------------------
 
@@ -40,6 +49,22 @@ def query_in_attributes(query_tokens: list[str], attr_text: str) -> int:
     """Count of query tokens found in the product attributes string."""
     attr_tokens = set(preprocess(attr_text))
     return sum(1 for t in query_tokens if t in attr_tokens)
+
+
+def brand_match(query_tokens: list[str], brand: str) -> int:
+    """1 if any brand token appears in the query."""
+    if not brand:
+        return 0
+    brand_tokens = set(preprocess(brand))
+    return int(any(t in brand_tokens for t in query_tokens))
+
+
+def query_is_brand(query_tokens: list[str], brand: str) -> int:
+    """1 if the query tokens exactly match the brand tokens."""
+    if not brand or not query_tokens:
+        return 0
+    brand_tokens = set(preprocess(brand))
+    return int(set(query_tokens) == brand_tokens)
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +87,24 @@ def number_match_score(query: str, target: str) -> float:
     return len(q_nums & t_nums) / len(q_nums)
 
 
+def query_has_number(query: str) -> int:
+    """1 if the query contains any numeric token."""
+    return int(bool(extract_numbers(query)))
+
+
+# ---------------------------------------------------------------------------
+# spaCy semantic similarity
+# ---------------------------------------------------------------------------
+
+def spacy_similarity(query: str, document: str, nlp) -> float:
+    """Semantic similarity between query and document using spaCy word vectors."""
+    doc_q = nlp(query)
+    doc_d = nlp(document)
+    if not doc_q.has_vector or not doc_d.has_vector:
+        return 0.0
+    return float(doc_q.similarity(doc_d))
+
+
 # ---------------------------------------------------------------------------
 # Feature vector builder
 # ---------------------------------------------------------------------------
@@ -70,6 +113,9 @@ def build_feature_vector(
     row,
     attr_lookup: dict,
     tfidf_vec: TfidfVectorizer | None = None,
+    brand_lookup: dict | None = None,
+    num_attrs_lookup: dict | None = None,
+    nlp=None,
     stem: bool = True,
 ) -> list[float]:
     """
@@ -77,33 +123,53 @@ def build_feature_vector(
 
     Parameters
     ----------
-    row : pandas Series with fields: search_term, product_title, product_description
-    attr_lookup : dict mapping product_uid -> concatenated attribute string
-    tfidf_vec : fitted TfidfVectorizer (optional; skip TF-IDF features if None)
-    stem : whether to apply stemming during preprocessing
+    row            : pandas Series with fields: search_term, product_title, product_description
+    attr_lookup    : product_uid -> concatenated attribute string
+    tfidf_vec      : fitted TfidfVectorizer (optional)
+    brand_lookup   : product_uid -> brand name string (optional)
+    num_attrs_lookup: product_uid -> attribute count (optional)
+    nlp            : spaCy language model (optional)
+    stem           : whether to apply stemming during preprocessing
     """
     query = str(row["search_term"])
     title = str(row["product_title"])
     desc = str(row["product_description"])
     uid = row["product_uid"]
     attrs = attr_lookup.get(uid, "")
+    brand = brand_lookup.get(uid, "") if brand_lookup else ""
 
     q_tokens = preprocess(query, stem=stem)
     t_tokens = preprocess(title, stem=stem)
     d_tokens = preprocess(desc, stem=stem)
 
+    ov_title = count_common_words(q_tokens, t_tokens)
+    ov_desc  = count_common_words(q_tokens, d_tokens)
+    q_len    = len(q_tokens)
+
     features = [
-        count_common_words(q_tokens, t_tokens),          # overlap: query vs title
-        count_common_words(q_tokens, d_tokens),          # overlap: query vs description
+        ov_title,                                        # overlap: query vs title
+        ov_desc,                                         # overlap: query vs description
         query_in_attributes(q_tokens, attrs),            # overlap: query vs attributes
         number_match_score(query, title),                # numeric match: title
         number_match_score(query, desc),                 # numeric match: description
-        len(q_tokens),                                   # query length
+        q_len,                                           # query length
+        overlap_ratio(ov_title, q_len),                  # fraction of query matched in title
+        overlap_ratio(ov_desc, q_len),                   # fraction of query matched in desc
+        overlap_ratio(ov_title, len(t_tokens)),          # fraction of title covered by query
+        overlap_ratio(ov_desc, len(d_tokens)),           # fraction of desc covered by query
+        brand_match(q_tokens, brand),                    # query contains brand name
+        query_is_brand(q_tokens, brand),                 # query is exactly the brand
+        num_attrs_lookup.get(uid, 0) if num_attrs_lookup else 0,  # number of attributes
+        query_has_number(query),                         # query contains a number
     ]
 
     if tfidf_vec is not None:
         features.append(tfidf_similarity(query, title, tfidf_vec))
         features.append(tfidf_similarity(query, desc, tfidf_vec))
+
+    if nlp is not None:
+        features.append(spacy_similarity(query, title, nlp))
+        features.append(spacy_similarity(query, desc, nlp))
 
     return features
 
@@ -115,6 +181,16 @@ FEATURE_NAMES_BASE = [
     "num_match_title",
     "num_match_desc",
     "query_len",
+    "overlap_title_ratio",
+    "overlap_desc_ratio",
+    "title_coverage",
+    "desc_coverage",
+    "brand_match",
+    "query_is_brand",
+    "num_attributes",
+    "query_has_number",
 ]
 
 FEATURE_NAMES_TFIDF = FEATURE_NAMES_BASE + ["tfidf_title", "tfidf_desc"]
+
+FEATURE_NAMES_FULL = FEATURE_NAMES_TFIDF + ["spacy_title", "spacy_desc"]
