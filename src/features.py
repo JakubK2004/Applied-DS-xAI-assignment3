@@ -68,6 +68,30 @@ def query_is_brand(query_tokens: list[str], brand: str) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Query term position in title
+# ---------------------------------------------------------------------------
+
+def query_term_position_score(query_tokens: list[str], title_tokens: list[str]) -> float:
+    """
+    Average normalised position of matched query terms in the title.
+    Returns 1.0 if all matches are at the start, 0.0 if none match or all at the end.
+    Earlier matches = stronger relevance signal.
+    """
+    if not title_tokens:
+        return 0.0
+    title_len = len(title_tokens)
+    positions = [
+        i / title_len
+        for t in query_tokens
+        for i, tok in enumerate(title_tokens)
+        if tok == t
+    ]
+    if not positions:
+        return 0.0
+    return 1.0 - (sum(positions) / len(positions))
+
+
+# ---------------------------------------------------------------------------
 # Domain-specific: number and unit matching
 # ---------------------------------------------------------------------------
 
@@ -161,6 +185,7 @@ def build_feature_vector(
         query_is_brand(q_tokens, brand),                 # query is exactly the brand
         num_attrs_lookup.get(uid, 0) if num_attrs_lookup else 0,  # number of attributes
         query_has_number(query),                         # query contains a number
+        query_term_position_score(q_tokens, t_tokens),  # avg position of matches in title
     ]
 
     if tfidf_vec is not None:
@@ -189,6 +214,7 @@ FEATURE_NAMES_BASE = [
     "query_is_brand",
     "num_attributes",
     "query_has_number",
+    "query_term_position",
 ]
 
 FEATURE_NAMES_TFIDF = FEATURE_NAMES_BASE + ["tfidf_title", "tfidf_desc"]
