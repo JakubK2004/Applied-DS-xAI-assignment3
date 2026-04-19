@@ -186,6 +186,7 @@ def build_feature_vector(
         num_attrs_lookup.get(uid, 0) if num_attrs_lookup else 0,  # number of attributes
         query_has_number(query),                         # query contains a number
         query_term_position_score(q_tokens, t_tokens),  # avg position of matches in title
+        ov_title / (1 + np.log1p(len(t_tokens))),       # overlap penalised by title length
     ]
 
     if tfidf_vec is not None:
@@ -215,6 +216,7 @@ FEATURE_NAMES_BASE = [
     "num_attributes",
     "query_has_number",
     "query_term_position",
+    "overlap_title_len_penalty",
 ]
 
 FEATURE_NAMES_TFIDF = FEATURE_NAMES_BASE + ["tfidf_title", "tfidf_desc"]
