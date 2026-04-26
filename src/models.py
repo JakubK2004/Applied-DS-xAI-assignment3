@@ -176,16 +176,18 @@ print(f"\n  Hyperparameter tuning — best so far: {best_name}")
 
 print("\n  Stage 1: RandomizedSearchCV (wide grid, 40 iterations)...")
 broad_param_dist = {
-    "n_estimators":   [50, 100, 200, 300, 500],
-    "max_depth":      [2, 3, 4, 5, 6, 7, 8],
-    "learning_rate":  [0.01, 0.05, 0.1, 0.15, 0.2, 0.3],
-    "subsample":      [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-    "min_samples_split": [2, 5, 10, 20],
-    "max_features":   ["sqrt", "log2", 0.5, 0.8, 1.0],
+    "n_estimators":      [50, 100, 200, 300, 500],
+    "max_depth":         [2, 3, 4, 5, 6, 7, 8],
+    "learning_rate":     [0.01, 0.05, 0.1, 0.15, 0.2, 0.3],
+    "subsample":         [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+    "colsample_bytree":  [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+    "reg_alpha":         [0, 0.01, 0.1, 0.5, 1.0],
+    "reg_lambda":        [0.5, 1.0, 2.0, 5.0],
+    "min_child_weight":  [1, 3, 5, 10],
 }
 
 search = RandomizedSearchCV(
-    GradientBoostingRegressor(random_state=RANDOM_STATE),
+    XGBRegressor(random_state=RANDOM_STATE, n_jobs=-1, verbosity=0),
     param_distributions=broad_param_dist,
     n_iter=40,
     cv=5,
@@ -211,26 +213,32 @@ def neighbours(val, candidates):
     idx = candidates.index(val) if val in candidates else 0
     return candidates[max(0, idx-1): idx+2]
 
-n_est_grid   = sorted(set([max(50, p["n_estimators"] - 50), p["n_estimators"], p["n_estimators"] + 50]))
-depth_grid   = sorted(set([max(2, p["max_depth"] - 1), p["max_depth"], p["max_depth"] + 1]))
+n_est_grid  = sorted(set([max(50, p["n_estimators"] - 50), p["n_estimators"], p["n_estimators"] + 50]))
+depth_grid  = sorted(set([max(2, p["max_depth"] - 1), p["max_depth"], p["max_depth"] + 1]))
 lr_candidates = [0.01, 0.05, 0.1, 0.15, 0.2, 0.3]
-lr_grid      = neighbours(p["learning_rate"], lr_candidates)
+lr_grid     = neighbours(p["learning_rate"], lr_candidates)
 sub_candidates = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-sub_grid     = neighbours(p["subsample"], sub_candidates)
+sub_grid    = neighbours(p["subsample"], sub_candidates)
+col_candidates = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+col_grid    = neighbours(p["colsample_bytree"], col_candidates)
 
 narrow_grid = {
-    "n_estimators":  n_est_grid,
-    "max_depth":     depth_grid,
-    "learning_rate": lr_grid,
-    "subsample":     sub_grid,
+    "n_estimators":     n_est_grid,
+    "max_depth":        depth_grid,
+    "learning_rate":    lr_grid,
+    "subsample":        sub_grid,
+    "colsample_bytree": col_grid,
 }
 print(f"  Narrow grid: {narrow_grid}")
 
 fine_search = GridSearchCV(
-    GradientBoostingRegressor(
-        min_samples_split=p["min_samples_split"],
-        max_features=p["max_features"],
+    XGBRegressor(
+        reg_alpha=p["reg_alpha"],
+        reg_lambda=p["reg_lambda"],
+        min_child_weight=p["min_child_weight"],
         random_state=RANDOM_STATE,
+        n_jobs=-1,
+        verbosity=0,
     ),
     param_grid=narrow_grid,
     cv=5,
@@ -242,7 +250,7 @@ fine_search.fit(X_train, y_train)
 rmse_stage2 = root_mean_squared_error(y_test, fine_search.best_estimator_.predict(X_test))
 print(f"\n  Stage 2 best params: {fine_search.best_params_}")
 print(f"  Stage 2 RMSE:        {rmse_stage2:.4f}")
-print(f"\n  Improvement over untuned: {min(results.values(), key=lambda r: r['RMSE'])['RMSE'] - rmse_stage2:+.4f}")
+print(f"\n  Improvement over untuned XGBoost: {results['XGBoost']['RMSE'] - rmse_stage2:+.4f}")
 
 # expose best estimator for feature_analysis.py
 search = fine_search
