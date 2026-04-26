@@ -52,7 +52,7 @@ plt.xlabel("Relevance")
 plt.ylabel("Count")
 plt.tight_layout()
 #plt.savefig("../results/figures/relevance_distribution.png")
-plt.show()
+# plt.show()
 
 # ---------------------------------------------------------------------------
 # Q6: Top-5 brand names in attributes

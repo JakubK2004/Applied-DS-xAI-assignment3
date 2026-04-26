@@ -48,7 +48,7 @@ plt.title(f"Top-{top_n} feature importances")
 plt.tight_layout()
 plt.savefig(FIGURES_DIR / "feature_importances.png")
 print(f"\n      Saved feature importances plot.")
-plt.show()
+# plt.show()
 
 # ---------------------------------------------------------------------------
 # Feature correlation matrix
@@ -67,7 +67,7 @@ plt.title("Feature correlation matrix")
 plt.tight_layout()
 plt.savefig(FIGURES_DIR / "feature_correlations.png")
 print("      Saved correlation matrix plot.")
-plt.show()
+# plt.show()
 
 # ---------------------------------------------------------------------------
 # Feature selection — retrain on top-N features only
@@ -85,10 +85,10 @@ print(f"      Selected features: {selected_names}")
 X_train_sel = X_train[:, selected_idx]
 X_test_sel  = X_test[:, selected_idx]
 
-from sklearn.ensemble import GradientBoostingRegressor
+from xgboost import XGBRegressor
 from sklearn.metrics import root_mean_squared_error
 
-model_sel = GradientBoostingRegressor(**search.best_params_, random_state=42)
+model_sel = XGBRegressor(**search.best_params_, random_state=42, n_jobs=-1, verbosity=0)
 model_sel.fit(X_train_sel, y_train)
 
 rmse_all = root_mean_squared_error(y_test, best_model.predict(X_test))
