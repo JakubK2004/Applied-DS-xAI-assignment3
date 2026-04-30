@@ -51,7 +51,7 @@ plt.title("Distribution of relevance scores")
 plt.xlabel("Relevance")
 plt.ylabel("Count")
 plt.tight_layout()
-#plt.savefig("../results/figures/relevance_distribution.png")
+plt.savefig("../results/figures/relevance_distribution.png")
 # plt.show()
 
 # ---------------------------------------------------------------------------
