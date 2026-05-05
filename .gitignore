@@ -17,5 +17,8 @@ venv/
 # OS
 .DS_Store
 
+# Submission files (root submission.csv is the canonical one)
+src/submission.csv
+
 # Claude Code
 .claude/
