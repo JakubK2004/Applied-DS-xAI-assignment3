@@ -1,11 +1,4 @@
-"""
-Feature weight inspection — Week 12 tasks.
-
-Tasks:
-1. Extract and rank feature importances from the best model
-2. Plot top-N feature weights
-3. Interpret the most important features
-"""
+# Extract, rank, and plot feature importances from the best tuned model.
 
 import sys
 import numpy as np
@@ -70,7 +63,7 @@ print("      Saved correlation matrix plot.")
 # plt.show()
 
 # ---------------------------------------------------------------------------
-# Feature selection — retrain on top-N features only
+# Retrain on top-N features only
 # ---------------------------------------------------------------------------
 
 print("[4/4] Retraining on selected features...")

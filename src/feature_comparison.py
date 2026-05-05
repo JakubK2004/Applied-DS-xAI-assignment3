@@ -1,9 +1,4 @@
-"""
-Feature set comparison — Week 10 Task 2.
-
-Trains BaggingRF on 4 incrementally richer feature sets and prints
-a RMSE comparison table showing the contribution of each feature group.
-"""
+# Train BaggingRF on incrementally richer feature sets and compare RMSE.
 
 import sys
 import numpy as np
@@ -79,9 +74,7 @@ FEATURE_SETS = [
     ("+ TF-IDF similarity",       [0, 1, 5, 2, 3, 4, 6, 7]),
 ]
 
-# ---------------------------------------------------------------------------
-# Model factory — identical config to Yao-Jen Chang baseline
-# ---------------------------------------------------------------------------
+# Same config as the Yao-Jen Chang baseline
 
 def make_model():
     rf = RandomForestRegressor(

@@ -1,52 +1,16 @@
-"""
-main.py — Home Depot Product Search Relevance
-Applied Data Science and Explainable AI — Assignment 3
-
-Run order:
-  1. Data exploration
-  2. Baseline replication + evaluation
-  3. Model comparison + hyperparameter tuning
-  4. Feature weight inspection
-
-Usage:
-  python main.py
-"""
+# Run all scripts in order. Uncomment a step to execute it.
 
 import sys
 sys.path.insert(0, ".")
 
-# ---------------------------------------------------------------------------
-# Step 1 — Data exploration (Week 9)
-# Loads train.csv, product_descriptions.csv, attributes.csv
-# Answers Q1–Q6 and saves relevance distribution plot
-# ---------------------------------------------------------------------------
-
+# Step 1: data exploration (Q1–Q6, saves relevance distribution plot)
 # import data_exploration
 
-
-# ---------------------------------------------------------------------------
-# Step 2 — Baseline replication (Week 9 / 10)
-# Replicates Yao-Jen Chang's random forest method
-# Evaluates on 80/20 split with RMSE, with and without stemming
-# ---------------------------------------------------------------------------
-
+# Step 2: baseline — replicates Yao-Jen Chang's method, evaluates with/without stemming
 # import baseline
 
-
-# ---------------------------------------------------------------------------
-# Step 3 — Model comparison + hyperparameter tuning (Week 10 / 11)
-# Builds extended feature matrix (overlap, TF-IDF, attributes, numbers/units)
-# Compares 4 regression models on RMSE and training time
-# Runs RandomizedSearchCV on the best model
-# ---------------------------------------------------------------------------
-
+# Step 3: model comparison + hyperparameter tuning on the full feature set
 # import models
 
-
-# ---------------------------------------------------------------------------
-# Step 4 — Feature weight inspection (Week 12)
-# Extracts and ranks feature importances from the best tuned model
-# Saves feature importance plot to results/figures/
-# ---------------------------------------------------------------------------
-
+# Step 4: feature importance extraction and plotting
 # import feature_analysis

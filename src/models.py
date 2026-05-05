@@ -1,11 +1,4 @@
-"""
-Model comparison and hyperparameter optimization — Week 11 tasks.
-
-Tasks:
-1. Compare 4 regression models (RMSE + training time)
-2. Hyperparameter optimization with RandomizedSearchCV on the best model
-3. Evaluate effect of preprocessing and domain-specific features
-"""
+# Compare regression models on RMSE and training time, then tune the best one.
 
 import sys
 import time
@@ -138,7 +131,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 print(f"      Train: {len(X_train):,} rows  |  Test: {len(X_test):,} rows")
 
 # ---------------------------------------------------------------------------
-# Task 1 — Compare four regression models
+# Model comparison
 # ---------------------------------------------------------------------------
 
 print("\n[6/6] Training, evaluating, and tuning models...")
@@ -164,15 +157,13 @@ for name, model in MODELS.items():
     print(f"      {name:30s}  RMSE={rmse:.4f}  time={elapsed:.1f}s")
 
 # ---------------------------------------------------------------------------
-# Task 2 — Hyperparameter optimization on the best model
+# Hyperparameter tuning
 # ---------------------------------------------------------------------------
 
 best_name = min(results, key=lambda k: results[k]["RMSE"])
 print(f"\n  Hyperparameter tuning — best so far: {best_name}")
 
-# ---------------------------------------------------------------------------
-# Stage 1 — Broad random search across a wide grid
-# ---------------------------------------------------------------------------
+# Stage 1: broad random search
 
 print("\n  Stage 1: RandomizedSearchCV (wide grid, 40 iterations)...")
 broad_param_dist = {
@@ -202,9 +193,7 @@ rmse_stage1 = root_mean_squared_error(y_test, search.best_estimator_.predict(X_t
 print(f"\n  Stage 1 best params: {p}")
 print(f"  Stage 1 RMSE:        {rmse_stage1:.4f}")
 
-# ---------------------------------------------------------------------------
-# Stage 2 — Narrow grid search around the best params from Stage 1
-# ---------------------------------------------------------------------------
+# Stage 2: narrow grid around Stage 1 best
 
 print("\n  Stage 2: GridSearchCV (narrow grid around Stage 1 best)...")
 
