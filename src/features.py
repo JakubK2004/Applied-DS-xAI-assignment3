@@ -12,9 +12,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from preprocessing import preprocess
 
 
-# ---------------------------------------------------------------------------
 # Term-count overlap (baseline, from Yao-Jen Chang)
-# ---------------------------------------------------------------------------
 
 def count_common_words(query_tokens: list[str], target_tokens: list[str]) -> int:
     """Number of query tokens that appear in target tokens."""
@@ -22,18 +20,14 @@ def count_common_words(query_tokens: list[str], target_tokens: list[str]) -> int
     return sum(1 for t in query_tokens if t in target_set)
 
 
-# ---------------------------------------------------------------------------
 # Ratio features
-# ---------------------------------------------------------------------------
 
 def overlap_ratio(overlap: int, length: int) -> float:
     """Overlap count normalised by a length (avoids division by zero)."""
     return overlap / length if length > 0 else 0.0
 
 
-# ---------------------------------------------------------------------------
 # TF-IDF cosine similarity
-# ---------------------------------------------------------------------------
 
 def tfidf_similarity(query: str, document: str, vectorizer: TfidfVectorizer) -> float:
     """Cosine similarity between query and document using a fitted TF-IDF vectorizer."""
@@ -41,9 +35,7 @@ def tfidf_similarity(query: str, document: str, vectorizer: TfidfVectorizer) -> 
     return float(cosine_similarity(vecs[0], vecs[1])[0, 0])
 
 
-# ---------------------------------------------------------------------------
 # Attribute-based features
-# ---------------------------------------------------------------------------
 
 def query_in_attributes(query_tokens: list[str], attr_text: str) -> int:
     """Count of query tokens found in the product attributes string."""
@@ -67,9 +59,7 @@ def query_is_brand(query_tokens: list[str], brand: str) -> int:
     return int(set(query_tokens) == brand_tokens)
 
 
-# ---------------------------------------------------------------------------
 # Query term position in title
-# ---------------------------------------------------------------------------
 
 def query_term_position_score(query_tokens: list[str], title_tokens: list[str]) -> float:
     """
@@ -91,9 +81,7 @@ def query_term_position_score(query_tokens: list[str], title_tokens: list[str]) 
     return 1.0 - (sum(positions) / len(positions))
 
 
-# ---------------------------------------------------------------------------
 # Domain-specific: number and unit matching
-# ---------------------------------------------------------------------------
 
 _NUMBER_PATTERN = re.compile(r"\d+(?:[./]\d+)?")
 
@@ -116,9 +104,7 @@ def query_has_number(query: str) -> int:
     return int(bool(extract_numbers(query)))
 
 
-# ---------------------------------------------------------------------------
 # spaCy semantic similarity
-# ---------------------------------------------------------------------------
 
 def spacy_similarity(query: str, document: str, nlp) -> float:
     """Semantic similarity between query and document using spaCy word vectors."""
@@ -129,9 +115,7 @@ def spacy_similarity(query: str, document: str, nlp) -> float:
     return float(doc_q.similarity(doc_d))
 
 
-# ---------------------------------------------------------------------------
 # Feature vector builder
-# ---------------------------------------------------------------------------
 
 def build_feature_vector(
     row,

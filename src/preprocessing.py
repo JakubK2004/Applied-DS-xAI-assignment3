@@ -13,9 +13,7 @@ from nltk.corpus import stopwords
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 
-# ---------------------------------------------------------------------------
 # Data loading & preparation
-# ---------------------------------------------------------------------------
 
 def prepare_data(stem: bool = True):
     """Load all CSVs, clean text, and return train, test, attributes, attr_lookup."""
@@ -74,9 +72,7 @@ def prepare_data_cached(stem: bool = True):
     return result
 
 
-# ---------------------------------------------------------------------------
 # Text preprocessing
-# ---------------------------------------------------------------------------
 
 STEMMER = PorterStemmer()
 STOP_WORDS = set(stopwords.words("english"))

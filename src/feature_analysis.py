@@ -17,9 +17,7 @@ print("      Done.")
 
 best_model = search.best_estimator_
 
-# ---------------------------------------------------------------------------
 # Extract feature importances
-# ---------------------------------------------------------------------------
 
 print("[2/4] Extracting feature importances...")
 importances = best_model.feature_importances_
@@ -43,9 +41,7 @@ plt.savefig(FIGURES_DIR / "feature_importances.png")
 print(f"\n      Saved feature importances plot.")
 # plt.show()
 
-# ---------------------------------------------------------------------------
 # Feature correlation matrix
-# ---------------------------------------------------------------------------
 
 print("[3/4] Computing feature correlation matrix...")
 df_features = pd.DataFrame(X_train, columns=FEATURE_NAMES_FULL)
@@ -62,9 +58,7 @@ plt.savefig(FIGURES_DIR / "feature_correlations.png")
 print("      Saved correlation matrix plot.")
 # plt.show()
 
-# ---------------------------------------------------------------------------
 # Retrain on top-N features only
-# ---------------------------------------------------------------------------
 
 print("[4/4] Retraining on selected features...")
 

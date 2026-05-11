@@ -24,9 +24,7 @@ DATA_DIR  = Path(__file__).parent.parent / "data"
 CACHE_DIR = DATA_DIR / ".cache"
 RANDOM_STATE = 42
 
-# ---------------------------------------------------------------------------
 # Load data
-# ---------------------------------------------------------------------------
 
 print("[1/6] Loading data...")
 t0 = time.time()
@@ -57,9 +55,7 @@ num_attrs_lookup = (
     .to_dict()
 )
 
-# ---------------------------------------------------------------------------
 # Feature matrix — build or load from cache
-# ---------------------------------------------------------------------------
 
 source_files = [DATA_DIR / "train.csv", DATA_DIR / "product_descriptions.csv", DATA_DIR / "attributes.csv"]
 mtimes = "".join(f"{p.stat().st_mtime}" for p in source_files)
@@ -130,9 +126,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 print(f"      Train: {len(X_train):,} rows  |  Test: {len(X_test):,} rows")
 
-# ---------------------------------------------------------------------------
 # Model comparison
-# ---------------------------------------------------------------------------
 
 print("\n[6/6] Training, evaluating, and tuning models...")
 MODELS = {
@@ -156,9 +150,7 @@ for name, model in MODELS.items():
     results[name] = {"RMSE": rmse, "Train time (s)": round(elapsed, 2)}
     print(f"      {name:30s}  RMSE={rmse:.4f}  time={elapsed:.1f}s")
 
-# ---------------------------------------------------------------------------
 # Hyperparameter tuning
-# ---------------------------------------------------------------------------
 
 best_name = min(results, key=lambda k: results[k]["RMSE"])
 print(f"\n  Hyperparameter tuning — best so far: {best_name}")

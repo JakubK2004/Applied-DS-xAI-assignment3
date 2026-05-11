@@ -14,9 +14,7 @@ from features import build_feature_vector, FEATURE_NAMES_TFIDF
 DATA_DIR = "data"
 RANDOM_STATE = 42
 
-# ---------------------------------------------------------------------------
 # Load data
-# ---------------------------------------------------------------------------
 
 train        = pd.read_csv(f"{DATA_DIR}/train.csv", encoding="ISO-8859-1")
 descriptions = pd.read_csv(f"{DATA_DIR}/product_descriptions.csv", encoding="ISO-8859-1")
@@ -31,17 +29,13 @@ attr_lookup = (
     .to_dict()
 )
 
-# ---------------------------------------------------------------------------
 # Fit TF-IDF on title + description corpus (training set only)
-# ---------------------------------------------------------------------------
 
 corpus = pd.concat([train["product_title"], train["product_description"]]).astype(str)
 tfidf = TfidfVectorizer(max_features=5000)
 tfidf.fit(corpus)
 
-# ---------------------------------------------------------------------------
 # Build full 8-feature matrix once
-# ---------------------------------------------------------------------------
 
 print("Building feature matrix (this takes a few minutes)...")
 X_full = np.array([
@@ -51,17 +45,13 @@ X_full = np.array([
 y = train["relevance"].values
 print(f"Feature matrix shape: {X_full.shape}")
 
-# ---------------------------------------------------------------------------
 # Train/test split — same seed as baseline for comparability
-# ---------------------------------------------------------------------------
 
 X_train, X_test, y_train, y_test = train_test_split(
     X_full, y, test_size=0.2, random_state=RANDOM_STATE
 )
 
-# ---------------------------------------------------------------------------
 # Feature set definitions (column index subsets)
-# ---------------------------------------------------------------------------
 # Column order (FEATURE_NAMES_TFIDF):
 #   0: overlap_title   1: overlap_desc   2: overlap_attrs
 #   3: num_match_title 4: num_match_desc  5: query_len
@@ -85,9 +75,7 @@ def make_model():
         random_state=RANDOM_STATE, n_jobs=-1,
     )
 
-# ---------------------------------------------------------------------------
 # Run comparison
-# ---------------------------------------------------------------------------
 
 print("\n{:<30s}  {:>6s}  {:>5s}".format("Feature set", "RMSE", "#feat"))
 print("-" * 48)
